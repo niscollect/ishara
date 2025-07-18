@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ishara</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.min.js"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      .scale-wrapper
+      {
+        transform: scale(0.7);
+      }
+
+      :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --success-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        --dark-bg: rgba(0, 0, 0, 0.9);
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.7);
+        --text-accent: #00f2fe;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: #0a0a0a;
+        color: var(--text-primary);
+        overflow-x: hidden;
+        min-height: 100vh;
+      }
+
+      .bg-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+            circle at 20% 50%,
+            rgba(120, 119, 198, 0.3) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(255, 119, 198, 0.3) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 40% 80%,
+            rgba(120, 198, 255, 0.3) 0%,
+            transparent 50%
+          );
+        animation: bgFloat 20s ease-in-out infinite;
+        z-index: -1;
+      }
+
+      @keyframes bgFloat {
+        0%,
+        100% {
+          transform: translateY(0px) rotate(0deg);
+        }
+        50% {
+          transform: translateY(-20px) rotate(180deg);
+        }
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        position: relative;
+        z-index: 1;
+        transform: translateY(-25%);
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 50px;
+        position: relative;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 4px;
+        background: var(--accent-gradient);
+        border-radius: 2px;
+      }
+
+      .logo {
+        font-size: 4rem;
+        font-weight: 700;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+        position: relative;
+        display: inline-block;
+      }
+
+      .logo::after {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: var(--accent-gradient);
+        border-radius: 1px;
+        animation: glow 3s ease-in-out infinite;
+      }
+
+      @keyframes glow {
+        0%,
+        100% {
+          box-shadow: 0 0 20px rgba(0, 242, 254, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 40px rgba(0, 242, 254, 0.8);
+        }
+      }
+
+      .subtitle {
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+        font-weight: 300;
+        margin-top: 20px;
+        letter-spacing: 0.5px;
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 40px;
+      }
+
+      .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 40px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .glass-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--accent-gradient);
+      }
+
+      .card-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .card-icon {
+        width: 32px;
+        height: 32px;
+        background: var(--accent-gradient);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+      }
+
+      .webcam-container {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+      }
+
+      .webcam-frame {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 20px;
+        padding: 20px;
+        border: 2px solid var(--glass-border);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .webcam-frame::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--accent-gradient);
+        opacity: 0.1;
+        border-radius: 20px;
+      }
+
+      .webcam-frame canvas {
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .btn-elite {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        padding: 16px 32px;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        position: relative;
+        overflow: hidden;
+        margin: 8px;
+        width: 100%;
+      }
+
+      .btn-elite::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          45deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transform: translateX(-100%);
+        transition: transform 0.6s ease;
+      }
+
+      .btn-elite:hover::before {
+        transform: translateX(100%);
+      }
+
+      .btn-elite:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn-elite:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--success-gradient);
+        animation: pulse 2s infinite;
+        box-shadow: 0 0 10px rgba(67, 233, 123, 0.5);
+      }
+
+      .status-dot.inactive {
+        background: rgba(255, 255, 255, 0.3);
+        animation: none;
+        box-shadow: none;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.2);
+          opacity: 0.7;
+        }
+      }
+
+      .prediction-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 15px;
+        margin-right: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .prediction-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--accent-gradient);
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+      }
+
+      .prediction-item.active::before {
+        transform: scaleY(1);
+      }
+
+      .prediction-item:hover {
+        transform: translateX(8px);
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--text-accent);
+      }
+
+      .prediction-label {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .prediction-percentage {
+        font-size: 1rem;
+        color: var(--text-accent);
+        font-weight: 500;
+      }
+
+      .confidence-bar {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .confidence-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        position: relative;
+      }
+
+      .confidence-fill::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        animation: shimmer 2s infinite;
+      }
+
+      @keyframes shimmer {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+
+      .current-prediction {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transform: scale(0.7);
+      }
+
+      .current-sign {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .current-confidence {
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 50px;
+        padding: 30px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary);
+      }
+
+      .tech-specs {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 20px;
+      }
+
+      .tech-spec {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-secondary);
+      }
+
+      .tech-icon {
+        width: 24px;
+        height: 24px;
+        background: var(--accent-gradient);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 768px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+        .container{
+          transform: translateY(-15%);
+        }
+        .tech-specs {
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .logo {
+          font-size: 3rem;
+        }
+
+        .glass-card {
+          padding: 30px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+
+<div class="scale-wrapper">
+
+    <div class="bg-animation"></div>
+
+    <div class="container">
+      <div class="header">
+        <div class="logo">Ishara</div>
+        <div class="subtitle">
+          Real-time Sign Language Detection & Translation
+        </div>
+      </div>
+
+      <div class="main-grid">
+        <div class="glass-card">
+          <div class="card-title">
+            <div class="card-icon">📹</div>
+            Live Camera Feed
+          </div>
+
+          <div class="status-indicator">
+            <div class="status-dot inactive" id="status-dot"></div>
+            <span id="status-text">Click Start to begin detection</span>
+          </div>
+
+          <div class="webcam-container">
+            <div class="webcam-frame" id="webcam-container">
+              <div
+                style="
+                  width: 300px;
+                  height: 300px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: var(--text-secondary);
+                  font-style: italic;
+                "
+              >
+                Camera preview will appear here
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-elite" id="start-btn" onclick="init()">
+            🚀 Start Detection
+          </button>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <div class="card-icon">🧠</div>
+            AI Predictions
+          </div>
+
+          <div class="current-prediction" id="current-prediction">
+            <div class="current-sign">Ready</div>
+            <div class="current-confidence">Awaiting camera activation</div>
+          </div>
+
+          <div id="label-container" style="transform: transformY(-20px) scale(0.8);transform-origin: top left; display:flex ;
+    flex-wrap: wrap;">
+            <div class="prediction-item">
+              <div class="prediction-label">
+                <span>Initializing...</span>
+                <span class="prediction-percentage">0.0%</span>
+              </div>
+              <div class="confidence-bar">
+                <div
+                  class="confidence-fill"
+                  style="width: 0%; background: var(--accent-gradient)"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="sentence-log"
+            style="
+              margin-top: 20px;
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 12px;
+              padding: 20px;
+              max-height: 200px;
+              overflow-y: auto;
+              transform: translateY(-25px);
+            "
+          >
+            <div style="font-weight: 600; margin-bottom: 10px">
+              Sentence Log
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div style="font-size: 1.1rem; margin-bottom: 20px">
+          🔒 Privacy First • Real-time Processing • No Data Storage
+        </div>
+
+        <div class="tech-specs">
+          <div class="tech-spec">
+            <div class="tech-icon">🧠</div>
+            <span>TensorFlow.js</span>
+          </div>
+          <div class="tech-spec">
+            <div class="tech-icon">📊</div>
+            <span>Real-time ML</span>
+          </div>
+          <div class="tech-spec">
+            <div class="tech-icon">⚡</div>
+            <span>60fps Detection</span>
+          </div>
+          <div class="tech-spec">
+            <div class="tech-icon">🌐</div>
+            <span>Browser-based</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+</div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script>
+      // Your model URL - replace with your actual model path
+      const URL = "./my_model/";
+
+      let model, webcam, labelContainer, maxPredictions;
+      let isRunning = false;
+
+      let currentWord = null;
+      let wordStartTime = null;
+      let sentence = [];
+      let sentenceLog = []; // stores final interpreted sentences
+
+      // Enhanced color palette for predictions
+      const colors = [
+        "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+        "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+        "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+        "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
+        "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
+      ];
+
+      let handsDetector,
+        handBoundingBox = null;
+      let tempCanvas = document.createElement("canvas");
+      let tempCtx = tempCanvas.getContext("2d");
+
+      /////////////////////
+      /////////////
+      /////////////////
+      /////////////
+      ////////////////
+
+async function init() {
+  if (isRunning) return;
+
+  console.log("🔧 init() called");
+
+  try {
+    updateStatus("Loading AI model...", true);
+    document.getElementById("start-btn").disabled = true;
+    document.getElementById("start-btn").textContent = "🔄 Loading...";
+
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
+    console.log("✅ Model loaded with classes:", maxPredictions);
+
+    updateStatus("Initializing camera...", true);
+
+    const flip = true;
+    webcam = new tmImage.Webcam(300, 300, flip);
+    await webcam.setup();
+    await webcam.play();
+
+    const container = document.getElementById("webcam-container");
+    container.innerHTML = "";
+    container.appendChild(webcam.canvas);
+
+    setupLabelContainer();
+
+    // ✅ MediaPipe Hands Setup
+    handsDetector = new Hands({
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+    });
+
+    handsDetector.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7,
+    });
+
+    handsDetector.onResults((results) => {
+      if (
+        results.multiHandLandmarks &&
+        results.multiHandLandmarks.length > 0
+      ) {
+        const landmarks = results.multiHandLandmarks[0];
+        const xs = landmarks.map((pt) => pt.x);
+        const ys = landmarks.map((pt) => pt.y);
+
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+
+        const w = webcam.canvas.width;
+        const h = webcam.canvas.height;
+        const pad = 20;
+
+        handBoundingBox = {
+          x: Math.max(0, minX * w - pad),
+          y: Math.max(0, minY * h - pad),
+          width: Math.min(w, (maxX - minX) * w + 2 * pad),
+          height: Math.min(h, (maxY - minY) * h + 2 * pad),
+        };
+      } else {
+        handBoundingBox = null;
+      }
+    });
+
+    // 🔁 Real-time hand detection loop
+    async function analyzeHandsLoop() {
+      if (webcam && webcam.canvas) {
+        await handsDetector.send({ image: webcam.canvas });
+      }
+      requestAnimationFrame(analyzeHandsLoop);
+    }
+    analyzeHandsLoop();
+
+    // 🔁 Prediction loop
+    window.requestAnimationFrame(loop);
+
+    updateStatus("Detection active", true);
+    document.getElementById("start-btn").textContent = "✅ Detection Active";
+    isRunning = true;
+  } catch (error) {
+    console.error("❌ Error initializing:", error);
+    updateStatus("Failed to load model or webcam", false);
+    document.getElementById("start-btn").disabled = false;
+    document.getElementById("start-btn").textContent = "🚀 Start Detection";
+  }
+}
+
+
+
+
+
+
+/////////
+/////////
+/////////
+/////////////
+      /////////
+      
+      function setupLabelContainer() {
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = "";
+
+        for (let i = 0; i < maxPredictions; i++) {
+          const predictionItem = document.createElement("div");
+          predictionItem.className = "prediction-item";
+          predictionItem.innerHTML = `
+                    <div class="prediction-label">
+                        <span class="label-text">Loading...</span>
+                        <span class="prediction-percentage">0.0%</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: 0%; background: ${
+                          colors[i % colors.length]
+                        };"></div>
+                    </div>
+                `;
+          labelContainer.appendChild(predictionItem);
+        }
+      }
+
+      async function loop() {
+        if (!isRunning) return;
+
+        webcam.update();
+        await predict();
+        window.requestAnimationFrame(loop);
+      }
+
+      async function predict() {
+        if (!model || !webcam) return;
+
+        // It is the "webcam.canvas" which is serving whatever is on the canvas to TM. If can somehow manage to send just the cropped hands data, it will be a boon
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+
+        //////////////
+        ////////
+        /////
+        ///
+        //
+        
+        let inputCanvas;
+
+        if (handBoundingBox) {
+          const { x, y, width, height } = handBoundingBox;
+
+          // Crop the hand region
+          tempCanvas.width = width;
+          tempCanvas.height = height;
+          tempCtx.drawImage(
+            webcam.canvas,
+            x,
+            y,
+            width,
+            height,
+            0,
+            0,
+            width,
+            height
+          );
+
+          inputCanvas = tempCanvas;
+        } else {
+          inputCanvas = webcam.canvas;
+        }
+
+        const prediction = await model.predict(inputCanvas);
+
+
+        ////////////////
+        /////////
+        //////
+        ///
+        //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        let highestPrediction = { className: "None", probability: 0 };
+
+        for (let i = 0; i < maxPredictions; i++) {
+          const className = prediction[i].className;
+          const probability = prediction[i].probability;
+
+          // Update highest prediction
+          if (probability > highestPrediction.probability) {
+            highestPrediction = { className, probability };
+          }
+
+          // Existing UI update logic here...
+          const predictionItem = labelContainer.children[i];
+          const labelText = predictionItem.querySelector(".label-text");
+          const percentage = predictionItem.querySelector(
+            ".prediction-percentage"
+          );
+          const confidenceFill =
+            predictionItem.querySelector(".confidence-fill");
+
+          labelText.textContent = className;
+          percentage.textContent = `${(probability * 100).toFixed(1)}%`;
+          confidenceFill.style.width = `${(probability * 100).toFixed(0)}%`;
+
+          if (probability > 0.5) {
+            predictionItem.classList.add("active");
+          } else {
+            predictionItem.classList.remove("active");
+          }
+        }
+
+        // ✨✨ NEW DOMINANCE BUFFERING LOGIC ✨✨
+        const now = Date.now();
+
+        if (highestPrediction.probability > 0.5) {
+          // only if confident
+          if (highestPrediction.className !== currentWord) {
+            currentWord = highestPrediction.className;
+            wordStartTime = now;
+          } else {
+            if (now - wordStartTime >= 500) {
+              // 1 second dominance
+              if (sentence[sentence.length - 1] !== currentWord) {
+                sentence.push(currentWord);
+                console.log("Added to sentence:", currentWord);
+
+                // Check for NULL as delimiter
+                if (currentWord === "NULL" && sentence.length > 1) {
+                  console.log("sentence -> ", sentence);
+                  processSentence(sentence);
+                  sentence = []; // Reset for next sentence
+                }
+              }
+              wordStartTime = now + 1000; // reset timer to avoid rapid repeats
+            }
+          }
+        }
+
+        updateCurrentPrediction(highestPrediction);
+      }
+
+      function updateCurrentPrediction(prediction) {
+        const currentPrediction = document.getElementById("current-prediction");
+        const signElement = currentPrediction.querySelector(".current-sign");
+        const confidenceElement = currentPrediction.querySelector(
+          ".current-confidence"
+        );
+
+        if (prediction.probability > 0.5) {
+          signElement.textContent = prediction.className;
+          confidenceElement.textContent = `${(
+            prediction.probability * 100
+          ).toFixed(1)}% confidence`;
+          currentPrediction.style.borderColor = "var(--text-accent)";
+        } else {
+          signElement.textContent = "No Clear Sign";
+          confidenceElement.textContent = "Show sign to camera";
+          currentPrediction.style.borderColor = "rgba(255, 255, 255, 0.1)";
+        }
+      }
+
+      function updateStatus(message, isActive) {
+        const statusText = document.getElementById("status-text");
+        const statusDot = document.getElementById("status-dot");
+
+        statusText.textContent = message;
+
+        if (isActive) {
+          statusDot.classList.remove("inactive");
+        } else {
+          statusDot.classList.add("inactive");
+        }
+      }
+
+      function appendToLog(sentence) {
+        const log = document.getElementById("sentence-log");
+        const entry = document.createElement("div");
+        entry.textContent = ">  " + sentence;
+        entry.style.padding = "5px 0";
+        log.appendChild(entry);
+
+        // Scroll to bottom
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function processSentence(words) {
+        console.log("Raw words:", words);
+
+        const phrase = words
+          .filter((w) => w !== "NULL")
+          .join(" ")
+          .toLowerCase();
+
+        let interpreted = phrase;
+
+        // Emergency phrase mappings
+        if (
+          phrase.includes("please") &&
+          phrase.includes("help") &&
+          phrase.includes("me")
+        ) {
+          interpreted = "Please help me";
+        } else if (phrase.includes("help") && phrase.includes("me")) {
+          interpreted = "Help me";
+        } else if (phrase.includes("thank") && phrase.includes("you")) {
+          interpreted = "Thank you";
+        } else if (phrase.includes("i") && phrase.includes("scared")) {
+          interpreted = "I'm scared";
+        }
+
+        console.log("Interpreted sentence:", interpreted);
+        appendToLog(interpreted);
+      }
+    </script>
+
+  </body>
+</html>
