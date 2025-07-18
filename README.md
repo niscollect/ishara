@@ -1,4 +1,5 @@
-Ishara: Real-Time Sign Language to Text Translator
+<h1> Ishara: Real-Time Sign Language to Text Translator</h1>
+<br>
 SignSpeak is a web-based application that translates hand gestures into text in real time. Unlike traditional sign language datasets that are limited to alphabets or numbers, SignSpeak is designed for real-world communication. It recognizes full words such as "hello", "thank you", "please", etc., and dynamically threads them into meaningful sentences — enabling smoother, natural interaction for people who rely on sign language.
 
 🔊 This tool is developed with accessibility in mind, especially for the Deaf and Hard-of-Hearing community, helping bridge communication gaps in everyday conversations.
